@@ -1,4 +1,4 @@
-# app.py - Updated with Final System State display and custom background
+# app.py - Sidebar restored with custom coloring
 
 import streamlit as st
 import numpy as np
@@ -19,26 +19,38 @@ st.set_page_config(
     page_title="Quantum State Visualizer"
 )
 
-# --- Custom Background and Text Style (IMPROVED FIX) ---
+# --- Custom Styling for Main App and Sidebar ---
 st.markdown("""
 <style>
+/* Main app background */
 .stApp {
     background-image: linear-gradient(to bottom right, #000000, #0D224F);
     background-attachment: fixed;
     background-size: cover;
 }
 
-/* This is the robust fix. It targets the main content container and forces
-  all text within it to be white, overriding Streamlit's light-theme defaults.
-*/
+/* Main content text color fix */
 [data-testid="stAppViewContainer"] {
     color: white;
 }
-
 [data-testid="stAppViewContainer"] h1,
 [data-testid="stAppViewContainer"] h2,
 [data-testid="stAppViewContainer"] h3,
 [data-testid="stAppViewContainer"] .stMarkdown p {
+    color: white !important;
+}
+
+/* Sidebar styling */
+[data-testid="stSidebar"] {
+    background-color: #0A193D; /* A solid dark blue that matches the theme */
+}
+
+/* Sidebar text color fix */
+[data-testid="stSidebar"] .stMarkdown,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 {
     color: white !important;
 }
 </style>
@@ -54,12 +66,13 @@ if 'user_code' not in st.session_state:
     st.session_state.user_code = ""
 
 # --- Main Application Content ---
-st.title("Quantum Circuit Simulator & Visualizer")
-st.markdown("Write your own Qiskit code below to build a quantum circuit and visualize the results.")
+st.title("⚛️ Quantum Circuit Simulator & Visualizer")
+st.markdown("Your sandbox for quantum computation. Write Qiskit code, run simulations, and visualize results instantly.")
+st.markdown("---")
 
-# --- Sidebar Controls ---
+# --- Sidebar Controls (Restored) ---
 st.sidebar.title("Circuit Controls")
-num_qubits = st.sidebar.slider("Number of Qubits", min_value=1, max_value=5, value=2, key='num_qubits_slider')
+num_qubits = st.sidebar.slider("Number of Qubits", min_value=1, max_value=5, value=2, key='num_qubits_slider', help="Adjust the number of qubits for your circuit.")
 st.sidebar.markdown("---")
 if st.sidebar.button("Clear and Reset Circuit", type="primary"):
     st.session_state.circuit = None
@@ -68,7 +81,7 @@ if st.sidebar.button("Clear and Reset Circuit", type="primary"):
     st.rerun()
 
 # --- Code Editor Input ---
-st.header("</> Qiskit Code Editor")
+st.subheader("</> Qiskit Code Editor")
 st.markdown("Define your circuit in the text area below. The circuit object **must** be named `qc`.")
 
 default_code = (
