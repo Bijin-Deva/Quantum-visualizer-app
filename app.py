@@ -1,4 +1,4 @@
-# app.py - Sidebar restored with custom coloring
+# app.py - Final fix for removing the top white bar
 
 import streamlit as st
 import numpy as np
@@ -29,6 +29,11 @@ st.markdown("""
     background-size: cover;
 }
 
+/* NEW: This rule removes the white header bar at the top */
+[data-testid="stHeader"] {
+    background-color: transparent;
+}
+
 /* Main content text color fix */
 [data-testid="stAppViewContainer"] {
     color: white;
@@ -51,6 +56,12 @@ st.markdown("""
 [data-testid="stSidebar"] h1,
 [data-testid="stSidebar"] h2,
 [data-testid="stSidebar"] h3 {
+    color: white !important;
+}
+
+/* Purity metric (st.metric) styling fix */
+[data-testid="stMetric"] label,
+[data-testid="stMetric"] div {
     color: white !important;
 }
 </style>
