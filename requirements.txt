@@ -1,0 +1,5 @@
+# requirements.txt
+streamlit
+qiskit[visualization]
+numpy
+plotly
