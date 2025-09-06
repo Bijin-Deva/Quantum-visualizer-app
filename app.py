@@ -1,4 +1,4 @@
-# app.py - Updated with Final System State display
+# app.py - Updated with Final System State display and custom background
 
 import streamlit as st
 import numpy as np
@@ -18,6 +18,18 @@ st.set_page_config(
     layout="wide",
     page_title="Quantum State Visualizer"
 )
+
+# --- Custom Background Style ---
+st.markdown("""
+<style>
+.stApp {
+    background-image: linear-gradient(to bottom right, #000000, #0D224F);
+    background-attachment: fixed;
+    background-size: cover;
+}
+</style>
+""", unsafe_allow_html=True)
+
 
 # Initialize session state variables
 if 'circuit' not in st.session_state:
