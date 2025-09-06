@@ -19,13 +19,27 @@ st.set_page_config(
     page_title="Quantum State Visualizer"
 )
 
-# --- Custom Background Style ---
+# --- Custom Background and Text Style (IMPROVED FIX) ---
 st.markdown("""
 <style>
 .stApp {
     background-image: linear-gradient(to bottom right, #000000, #0D224F);
     background-attachment: fixed;
     background-size: cover;
+}
+
+/* This is the robust fix. It targets the main content container and forces
+  all text within it to be white, overriding Streamlit's light-theme defaults.
+*/
+[data-testid="stAppViewContainer"] {
+    color: white;
+}
+
+[data-testid="stAppViewContainer"] h1,
+[data-testid="stAppViewContainer"] h2,
+[data-testid="stAppViewContainer"] h3,
+[data-testid="stAppViewContainer"] .stMarkdown p {
+    color: white !important;
 }
 </style>
 """, unsafe_allow_html=True)
