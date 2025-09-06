@@ -10,7 +10,7 @@ from quantum_utils import (
     DensityMatrix
 )
 from bloch_plot import plot_bloch_sphere
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, qasm2
 import numpy as np
 
 # Set the Streamlit page configuration
@@ -112,7 +112,8 @@ if st.button("Build and Run Simulation", type="primary"):
             st.session_state.circuit = circuit
             
             # Generate QASM code
-            st.session_state.qasm_code = circuit.qasm()
+            # NEW, CORRECTED CODE
+            st.session_state.qasm_code = qasm2.dumps(circuit)
             st.success("Circuit built and simulated successfully!")
             st.rerun() # Rerun to show the results below
         except Exception as e:
@@ -156,4 +157,5 @@ if st.session_state.circuit is not None:
                     st.write(reduced_dm_data)
 
     except Exception as e:
+
         st.error(f"Error during simulation or visualization: {e}")
