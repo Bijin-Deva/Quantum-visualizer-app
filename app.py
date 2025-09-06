@@ -192,7 +192,7 @@ if st.session_state.circuit is not None:
                 st.metric(label=f"Purity (Qubit {i})", value=f"{purity:.4f}")
                 with st.expander(f"Details for Qubit {i}"):
                     st.markdown(f"**Bloch Vector:** `({bx:.3f}, {by:.3f}, {bz:.3f})`")
-                    st.text("Reduced Density Matrix:")
+                    st.markdown("Reduced Density Matrix:")
                     st.dataframe(np.round(reduced_dm_data, 3))
     except Exception as e:
         st.error(f"Error during simulation or visualization: {e}")
