@@ -1,9 +1,9 @@
-# app.py - Final fix for removing the top white bar
+# app.py - Final fix for removing the top white bar, styling expanders, and repositioning output
 
 import streamlit as st
 import numpy as np
 from qiskit import QuantumCircuit, qasm2
-from qiskit.quantum_info import DensityMatrix, Statevector # Add Statevector import
+from qiskit.quantum_info import DensityMatrix, Statevector
 
 from quantum_utils import (
     get_full_density_matrix_from_circuit,
@@ -29,7 +29,7 @@ st.markdown("""
     background-size: cover;
 }
 
-/* NEW: This rule removes the white header bar at the top */
+/* This rule removes the white header bar at the top */
 [data-testid="stHeader"] {
     background-color: transparent;
 }
@@ -63,6 +63,12 @@ st.markdown("""
 [data-testid="stMetric"] label,
 [data-testid="stMetric"] div {
     color: white !important;
+}
+
+/* MODIFIED: Custom styling for the details expander */
+[data-testid="stExpander"] summary {
+    color: #87CEEB !important; /* A light, techy blue */
+    font-weight: bold;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -141,39 +147,36 @@ if st.session_state.circuit is not None:
     st.markdown("---")
     st.header("Simulation Results")
     
-    # --- Row 1: Diagram and QASM ---
-    with st.container():
-        col1, col2 = st.columns(2)
-        with col1:
-            st.subheader("Circuit Diagram")
-            try:
-                fig_circuit = st.session_state.circuit.draw(output='mpl', style={'fontsize': 12})
-                st.pyplot(fig_circuit)
-            except Exception as e:
-                st.error(f"Error drawing circuit: {e}")
-                st.code(str(st.session_state.circuit))
-                
-        with col2:
-            st.subheader("OpenQASM Code")
-            st.code(st.session_state.qasm_code, language='qasm')
-
-    st.markdown("---")
-
     try:
         # Calculate the full density matrix once for all subsequent calculations
         full_dm_obj = get_full_density_matrix_from_circuit(st.session_state.circuit)
         
-        # --- NEW: Final System State Display ---
-        st.subheader("Final System State")
-        # Check purity to decide whether to show the statevector or density matrix
-        full_purity = purity_from_rho(full_dm_obj.data)
-        if np.isclose(full_purity, 1.0):
-            st.markdown("The final system state is **pure**. Displaying the Statevector:")
-            final_statevector = Statevector.from_instruction(st.session_state.circuit)
-            st.code(str(final_statevector), language='text')
-        else:
-            st.markdown(f"The final system state is **mixed** (Purity = {full_purity:.4f}). Displaying the full Density Matrix:")
-            st.code(str(full_dm_obj), language='text')
+        # --- Row 1: Diagram, QASM, and Final State ---
+        with st.container():
+            col1, col2 = st.columns(2)
+            with col1:
+                st.subheader("Circuit Diagram")
+                try:
+                    fig_circuit = st.session_state.circuit.draw(output='mpl', style={'fontsize': 12})
+                    st.pyplot(fig_circuit)
+                except Exception as e:
+                    st.error(f"Error drawing circuit: {e}")
+                    st.code(str(st.session_state.circuit))
+                
+            with col2:
+                st.subheader("OpenQASM Code")
+                st.code(st.session_state.qasm_code, language='qasm')
+                
+                # MODIFIED: Final System State Display is now in the second column
+                st.subheader("Final System State")
+                full_purity = purity_from_rho(full_dm_obj.data)
+                if np.isclose(full_purity, 1.0):
+                    st.markdown("The system is in a **pure state**.")
+                    final_statevector = Statevector.from_instruction(st.session_state.circuit)
+                    st.code(str(final_statevector), language='text')
+                else:
+                    st.markdown(f"The system is in a **mixed state** (Purity = {full_purity:.4f}).")
+                    st.code(str(full_dm_obj), language='text')
 
         st.markdown("---")
         
@@ -190,10 +193,11 @@ if st.session_state.circuit is not None:
 
                 st.plotly_chart(plot_bloch_sphere(bx, by, bz, f"Qubit {i}"), use_container_width=True)
                 st.metric(label=f"Purity (Qubit {i})", value=f"{purity:.4f}")
+                
+                # This expander will now be styled due to the CSS added above
                 with st.expander(f"Details for Qubit {i}"):
                     st.markdown(f"**Bloch Vector:** `({bx:.3f}, {by:.3f}, {bz:.3f})`")
                     st.markdown("Reduced Density Matrix:")
                     st.dataframe(np.round(reduced_dm_data, 3))
     except Exception as e:
         st.error(f"Error during simulation or visualization: {e}")
-
