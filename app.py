@@ -1,4 +1,4 @@
-# app.py - Styled the measurement button to match the theme
+# app.py - Restored the background color for the "Run Simulation" button
 
 import streamlit as st
 import numpy as np
@@ -116,7 +116,8 @@ if not st.session_state.user_code:
 
 user_code = st.text_area("Your Qiskit Code:", st.session_state.user_code, height=250, label_visibility="collapsed")
 
-if st.button("Run Simulation"): # Kept this as a secondary button
+# MODIFIED: Restored the 'type="primary"' argument to this button
+if st.button("Run Simulation", type="primary"):
     st.session_state.user_code = user_code
     st.session_state.counts = None
     try:
@@ -170,7 +171,6 @@ if st.session_state.circuit is not None:
         st.markdown("Simulate running the circuit on an ideal quantum computer.")
         
         shots = 1024
-        # MODIFIED: Changed the button type to "primary" for better styling
         if st.button(f"Measure All Qubits ({shots} Shots)", type="primary"):
             with st.spinner("Simulating measurements..."):
                 circuit_to_measure = st.session_state.circuit.copy()
