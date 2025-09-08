@@ -1,8 +1,8 @@
-# app.py - Updated measurement visualization with Plotly and "Most Probable Outcome"
+# app.py - Styled the measurement button to match the theme
 
 import streamlit as st
 import numpy as np
-import plotly.graph_objects as go  # Import Plotly
+import plotly.graph_objects as go
 from qiskit import QuantumCircuit, qasm2, ClassicalRegister
 from qiskit.quantum_info import DensityMatrix, Statevector
 from qiskit_aer import AerSimulator
@@ -116,7 +116,7 @@ if not st.session_state.user_code:
 
 user_code = st.text_area("Your Qiskit Code:", st.session_state.user_code, height=250, label_visibility="collapsed")
 
-if st.button("Run Simulation", type="primary"):
+if st.button("Run Simulation"): # Kept this as a secondary button
     st.session_state.user_code = user_code
     st.session_state.counts = None
     try:
@@ -154,7 +154,6 @@ if st.session_state.circuit is not None:
                 st.subheader("OpenQASM Code")
                 st.code(st.session_state.qasm_code, language='qasm')
                 st.subheader("Final System State (Before Measurement)")
-                # ... (rest of the state display logic is unchanged)
                 full_purity = purity_from_rho(full_dm_obj.data)
                 if np.isclose(full_purity, 1.0):
                     st.markdown("The system is in a **pure state**.")
@@ -166,12 +165,13 @@ if st.session_state.circuit is not None:
 
         st.markdown("---")
 
-        # --- MODIFIED: Measurement Simulation Section ---
+        # --- Measurement Simulation Section ---
         st.subheader("🔬 Classical Measurement Outcome")
         st.markdown("Simulate running the circuit on an ideal quantum computer.")
         
-        shots = 1024 # Define number of shots
-        if st.button(f"Measure All Qubits ({shots} Shots)"):
+        shots = 1024
+        # MODIFIED: Changed the button type to "primary" for better styling
+        if st.button(f"Measure All Qubits ({shots} Shots)", type="primary"):
             with st.spinner("Simulating measurements..."):
                 circuit_to_measure = st.session_state.circuit.copy()
                 if not circuit_to_measure.cregs:
@@ -187,22 +187,20 @@ if st.session_state.circuit is not None:
             st.markdown(f"**Results from {shots} shots**")
             counts = st.session_state.counts
             
-            # Create and display the Plotly bar chart
             fig = go.Figure()
             fig.add_trace(go.Bar(
                 x=list(counts.keys()),
                 y=list(counts.values()),
-                marker_color='#d65f5f' # Reddish color from your image
+                marker_color='#d65f5f'
             ))
             fig.update_layout(
                 xaxis_title='Measured State',
                 yaxis_title='Counts',
-                template='plotly_dark', # Use dark theme
+                template='plotly_dark',
                 bargap=0.5
             )
             st.plotly_chart(fig, use_container_width=True)
 
-            # Display the most probable outcome using st.metric
             most_probable_outcome = max(counts, key=counts.get)
             st.metric(label="Most Probable Outcome", value=most_probable_outcome)
             
@@ -213,7 +211,6 @@ if st.session_state.circuit is not None:
 
         # --- Per-Qubit Bloch Sphere Visualizations ---
         st.subheader("Per-Qubit Bloch Sphere Visualizations")
-        # ... (rest of the Bloch sphere logic is unchanged)
         display_qubits = st.session_state.circuit.num_qubits
         cols = st.columns(display_qubits)
         for i in range(display_qubits):
