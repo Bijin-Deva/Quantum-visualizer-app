@@ -1,11 +1,11 @@
-# app.py - Added measurement simulation and histogram plotting
+# app.py - Updated measurement visualization with Plotly and "Most Probable Outcome"
 
 import streamlit as st
 import numpy as np
+import plotly.graph_objects as go  # Import Plotly
 from qiskit import QuantumCircuit, qasm2, ClassicalRegister
 from qiskit.quantum_info import DensityMatrix, Statevector
-from qiskit_aer import AerSimulator # Import the simulator
-from qiskit.visualization import plot_histogram # Import histogram plotter
+from qiskit_aer import AerSimulator
 
 from quantum_utils import (
     get_full_density_matrix_from_circuit,
@@ -49,7 +49,7 @@ st.markdown("""
 
 /* Sidebar styling */
 [data-testid="stSidebar"] {
-    background-color: #0A193D; /* A solid dark blue that matches the theme */
+    background-color: #0A193D;
 }
 
 /* Sidebar text color fix */
@@ -61,20 +61,17 @@ st.markdown("""
     color: white !important;
 }
 
-/* Purity metric (st.metric) styling fix */
+/* Metric and Expander styling */
 [data-testid="stMetric"] label,
 [data-testid="stMetric"] div {
     color: white !important;
 }
-
-/* Custom styling for the details expander */
 [data-testid="stExpander"] summary {
-    color: #87CEEB !important; /* A light, techy blue */
+    color: #87CEEB !important;
     font-weight: bold;
 }
 </style>
 """, unsafe_allow_html=True)
-
 
 # Initialize session state variables
 if 'circuit' not in st.session_state:
@@ -83,7 +80,6 @@ if 'qasm_code' not in st.session_state:
     st.session_state.qasm_code = ""
 if 'user_code' not in st.session_state:
     st.session_state.user_code = ""
-# NEW: Session state to store measurement counts
 if 'counts' not in st.session_state:
     st.session_state.counts = None
 
@@ -100,7 +96,7 @@ if st.sidebar.button("Clear and Reset Circuit", type="primary"):
     st.session_state.circuit = None
     st.session_state.qasm_code = ""
     st.session_state.user_code = ""
-    st.session_state.counts = None # Clear counts on reset
+    st.session_state.counts = None
     st.rerun()
 
 # --- Code Editor Input ---
@@ -110,14 +106,11 @@ st.markdown("Define your circuit in the text area below. The circuit object **mu
 default_code = (
     f"# Create a quantum circuit with {num_qubits} qubits\n"
     f"qc = QuantumCircuit({num_qubits})\n\n"
-    "# Example: Apply an X-gate to get state |1>.\n"
-    "qc.x(0)\n\n"
-    "# Try other gates!\n"
-    "# qc.h(0)\n"
-    "# qc.cx(0, 1)\n"
+    "# Example: Create a Bell state |Φ+>\n"
+    "qc.h(0)\n"
+    "qc.cx(0, 1)\n"
 )
 
-# Use session state to preserve code on reruns
 if not st.session_state.user_code:
     st.session_state.user_code = default_code
 
@@ -125,12 +118,9 @@ user_code = st.text_area("Your Qiskit Code:", st.session_state.user_code, height
 
 if st.button("Run Simulation", type="primary"):
     st.session_state.user_code = user_code
-    st.session_state.counts = None # Clear old measurement results
+    st.session_state.counts = None
     try:
-        exec_globals = {
-            "QuantumCircuit": QuantumCircuit,
-            "np": np
-        }
+        exec_globals = {"QuantumCircuit": QuantumCircuit, "np": np}
         exec(user_code, exec_globals)
         circuit = exec_globals.get("qc")
 
@@ -141,7 +131,6 @@ if st.button("Run Simulation", type="primary"):
             st.rerun()
         else:
             st.error("Execution succeeded, but a QuantumCircuit object named 'qc' was not found.")
-
     except Exception as e:
         st.error(f"Error in your code: {e}")
         st.session_state.circuit = None
@@ -154,7 +143,7 @@ if st.session_state.circuit is not None:
     try:
         full_dm_obj = get_full_density_matrix_from_circuit(st.session_state.circuit)
         
-        # --- Row 1: Diagram, QASM, and Final State ---
+        # Row 1: Diagram, QASM, and State
         with st.container():
             col1, col2 = st.columns(2)
             with col1:
@@ -165,6 +154,7 @@ if st.session_state.circuit is not None:
                 st.subheader("OpenQASM Code")
                 st.code(st.session_state.qasm_code, language='qasm')
                 st.subheader("Final System State (Before Measurement)")
+                # ... (rest of the state display logic is unchanged)
                 full_purity = purity_from_rho(full_dm_obj.data)
                 if np.isclose(full_purity, 1.0):
                     st.markdown("The system is in a **pure state**.")
@@ -176,39 +166,56 @@ if st.session_state.circuit is not None:
 
         st.markdown("---")
 
-        # --- NEW: Measurement Simulation Section ---
-        st.subheader("🔬 Measurement Simulation")
-        st.markdown("Simulate running the circuit on an ideal quantum computer and measuring the final state of all qubits.")
-        if st.button("Measure All Qubits (1024 Shots)"):
+        # --- MODIFIED: Measurement Simulation Section ---
+        st.subheader("🔬 Classical Measurement Outcome")
+        st.markdown("Simulate running the circuit on an ideal quantum computer.")
+        
+        shots = 1024 # Define number of shots
+        if st.button(f"Measure All Qubits ({shots} Shots)"):
             with st.spinner("Simulating measurements..."):
-                # Create a copy to avoid changing the original circuit diagram
                 circuit_to_measure = st.session_state.circuit.copy()
-                
-                # Add a classical register and measurements if they don't exist
                 if not circuit_to_measure.cregs:
                     circuit_to_measure.measure_all(inplace=True)
 
                 simulator = AerSimulator()
-                job = simulator.run(circuit_to_measure, shots=1024, memory=True)
+                job = simulator.run(circuit_to_measure, shots=shots, memory=True)
                 result = job.result()
                 st.session_state.counts = result.get_counts(circuit_to_measure)
-                st.rerun() # Rerun to display the results below
+                st.rerun()
 
         if st.session_state.counts:
-            st.markdown("**Measurement Outcomes**")
-            # Use Qiskit's plotter to create a matplotlib figure
-            fig_hist = plot_histogram(st.session_state.counts, title='Measurement Outcomes')
-            st.pyplot(fig_hist) # Display the figure in Streamlit
+            st.markdown(f"**Results from {shots} shots**")
+            counts = st.session_state.counts
+            
+            # Create and display the Plotly bar chart
+            fig = go.Figure()
+            fig.add_trace(go.Bar(
+                x=list(counts.keys()),
+                y=list(counts.values()),
+                marker_color='#d65f5f' # Reddish color from your image
+            ))
+            fig.update_layout(
+                xaxis_title='Measured State',
+                yaxis_title='Counts',
+                template='plotly_dark', # Use dark theme
+                bargap=0.5
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+            # Display the most probable outcome using st.metric
+            most_probable_outcome = max(counts, key=counts.get)
+            st.metric(label="Most Probable Outcome", value=most_probable_outcome)
+            
             with st.expander("Show Raw Counts"):
-                st.write(st.session_state.counts)
+                st.write(counts)
         
         st.markdown("---")
 
         # --- Per-Qubit Bloch Sphere Visualizations ---
         st.subheader("Per-Qubit Bloch Sphere Visualizations")
+        # ... (rest of the Bloch sphere logic is unchanged)
         display_qubits = st.session_state.circuit.num_qubits
         cols = st.columns(display_qubits)
-
         for i in range(display_qubits):
             with cols[i]:
                 reduced_dm_data = get_reduced_density_matrix(full_dm_obj, display_qubits, i)
@@ -222,5 +229,6 @@ if st.session_state.circuit is not None:
                     st.markdown(f"**Bloch Vector:** `({bx:.3f}, {by:.3f}, {bz:.3f})`")
                     st.markdown("Reduced Density Matrix:")
                     st.dataframe(np.round(reduced_dm_data, 3))
+
     except Exception as e:
         st.error(f"Error during simulation or visualization: {e}")
