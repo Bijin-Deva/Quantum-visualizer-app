@@ -1,9 +1,9 @@
-# app.py - Restored the background color for the "Run Simulation" button
+# app.py - Updated to support user-defined measurements
 
 import streamlit as st
 import numpy as np
 import plotly.graph_objects as go
-from qiskit import QuantumCircuit, qasm2, ClassicalRegister
+from qiskit import QuantumCircuit, qasm2, ClassicalRegister # MODIFIED: Imported ClassicalRegister
 from qiskit.quantum_info import DensityMatrix, Statevector
 from qiskit_aer import AerSimulator
 
@@ -76,6 +76,9 @@ st.markdown("""
 # Initialize session state variables
 if 'circuit' not in st.session_state:
     st.session_state.circuit = None
+# NEW: Add a separate state for the circuit used for state visualization (pre-measurement)
+if 'state_circuit' not in st.session_state:
+    st.session_state.state_circuit = None
 if 'qasm_code' not in st.session_state:
     st.session_state.qasm_code = ""
 if 'user_code' not in st.session_state:
@@ -94,6 +97,7 @@ num_qubits = st.sidebar.slider("Number of Qubits", min_value=1, max_value=5, val
 st.sidebar.markdown("---")
 if st.sidebar.button("Clear and Reset Circuit", type="primary"):
     st.session_state.circuit = None
+    st.session_state.state_circuit = None # NEW: Reset the state circuit as well
     st.session_state.qasm_code = ""
     st.session_state.user_code = ""
     st.session_state.counts = None
@@ -103,31 +107,42 @@ if st.sidebar.button("Clear and Reset Circuit", type="primary"):
 st.subheader("</> Qiskit Code Editor")
 st.markdown("Define your circuit in the text area below. The circuit object **must** be named `qc`.")
 
+# MODIFIED: Updated default code to include measurements
 default_code = (
-    f"# Create a quantum circuit with {num_qubits} qubits\n"
-    f"qc = QuantumCircuit({num_qubits})\n\n"
-    "# Example: Create a Bell state |Φ+>\n"
+    f"# Create a quantum circuit with {num_qubits} qubits and {num_qubits} classical bits\n"
+    f"qc = QuantumCircuit({num_qubits}, {num_qubits})\n\n"
+    "# Example: Create a Bell state |Φ+> and measure it\n"
     "qc.h(0)\n"
     "qc.cx(0, 1)\n"
+    "qc.barrier()\n"
+    "qc.measure([0, 1], [0, 1])\n"
 )
+
 
 if not st.session_state.user_code:
     st.session_state.user_code = default_code
 
 user_code = st.text_area("Your Qiskit Code:", st.session_state.user_code, height=250, label_visibility="collapsed")
 
-# MODIFIED: Restored the 'type="primary"' argument to this button
+
 if st.button("Run Simulation", type="primary"):
     st.session_state.user_code = user_code
     st.session_state.counts = None
     try:
-        exec_globals = {"QuantumCircuit": QuantumCircuit, "np": np}
+        # MODIFIED: Add ClassicalRegister to the execution scope
+        exec_globals = {"QuantumCircuit": QuantumCircuit, "ClassicalRegister": ClassicalRegister, "np": np}
         exec(user_code, exec_globals)
         circuit = exec_globals.get("qc")
 
         if circuit and isinstance(circuit, QuantumCircuit):
             st.session_state.circuit = circuit
             st.session_state.qasm_code = qasm2.dumps(circuit)
+
+            # NEW: Create a copy of the circuit without measurements for state visualization
+            state_circuit = circuit.copy()
+            state_circuit.remove_final_measurements(inplace=True)
+            st.session_state.state_circuit = state_circuit
+            
             st.success("Circuit created and state simulated successfully!")
             st.rerun()
         else:
@@ -135,20 +150,25 @@ if st.button("Run Simulation", type="primary"):
     except Exception as e:
         st.error(f"Error in your code: {e}")
         st.session_state.circuit = None
+        st.session_state.state_circuit = None
+
 
 # --- Visualization Section ---
-if st.session_state.circuit is not None:
+# MODIFIED: Check for 'circuit' to display, but use 'state_circuit' for calculations
+if st.session_state.circuit is not None and st.session_state.state_circuit is not None:
     st.markdown("---")
     st.header("Simulation Results")
     
     try:
-        full_dm_obj = get_full_density_matrix_from_circuit(st.session_state.circuit)
+        # MODIFIED: Use the measurement-free 'state_circuit' for density matrix calculation
+        full_dm_obj = get_full_density_matrix_from_circuit(st.session_state.state_circuit)
         
         # Row 1: Diagram, QASM, and State
         with st.container():
             col1, col2 = st.columns(2)
             with col1:
                 st.subheader("Circuit Diagram")
+                # MODIFIED: Draw the original circuit, which includes measurements
                 fig_circuit = st.session_state.circuit.draw(output='mpl', style={'fontsize': 12})
                 st.pyplot(fig_circuit)
             with col2:
@@ -158,7 +178,8 @@ if st.session_state.circuit is not None:
                 full_purity = purity_from_rho(full_dm_obj.data)
                 if np.isclose(full_purity, 1.0):
                     st.markdown("The system is in a **pure state**.")
-                    final_statevector = Statevector.from_instruction(st.session_state.circuit)
+                    # MODIFIED: Get statevector from the measurement-free circuit
+                    final_statevector = Statevector.from_instruction(st.session_state.state_circuit)
                     st.code(str(final_statevector), language='text')
                 else:
                     st.markdown(f"The system is in a **mixed state** (Purity = {full_purity:.4f}).")
@@ -171,10 +192,13 @@ if st.session_state.circuit is not None:
         st.markdown("Simulate running the circuit on an ideal quantum computer.")
         
         shots = 1024
-        if st.button(f"Measure All Qubits ({shots} Shots)", type="primary"):
+        if st.button(f"Measure and Run ({shots} Shots)", type="primary"):
             with st.spinner("Simulating measurements..."):
                 circuit_to_measure = st.session_state.circuit.copy()
+                # MODIFIED: Only add 'measure_all' if the circuit has no classical registers yet.
+                # This respects user-defined measurements.
                 if not circuit_to_measure.cregs:
+                    st.info("No classical registers found. Adding measurements to all qubits.")
                     circuit_to_measure.measure_all(inplace=True)
 
                 simulator = AerSimulator()
@@ -210,8 +234,9 @@ if st.session_state.circuit is not None:
         st.markdown("---")
 
         # --- Per-Qubit Bloch Sphere Visualizations ---
-        st.subheader("Per-Qubit Bloch Sphere Visualizations")
-        display_qubits = st.session_state.circuit.num_qubits
+        st.subheader("Per-Qubit Bloch Sphere Visualizations (State Before Measurement)")
+        # MODIFIED: Use the state_circuit for per-qubit analysis
+        display_qubits = st.session_state.state_circuit.num_qubits
         cols = st.columns(display_qubits)
         for i in range(display_qubits):
             with cols[i]:
