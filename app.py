@@ -159,11 +159,41 @@ st.sidebar.subheader("Quantum Noise")
 enable_noise = st.sidebar.checkbox("Enable Noise", value=False)
 
 with st.sidebar.expander("Noise Parameters"):
-    depol_p = st.sidebar.slider("Depolarization", 0.0, 0.3, 0.0)
-    decay_f = st.sidebar.slider("Amplitude Damping (T1)", 0.0, 0.3, 0.0)
-    phase_g = st.sidebar.slider("Phase Damping (T2)", 0.0, 0.3, 0.0)
-    ro_01 = st.sidebar.slider("|0⟩ → |1⟩ (Readout)", 0.0, 0.3, 0.0)
-    ro_10 = st.sidebar.slider("|1⟩ → |0⟩ (Readout)", 0.0, 0.3, 0.0)
+    depol_p = st.slider(
+        "Depolarization", 0.0, 0.3, 0.0,
+        key="depol_p",
+        label_visibility="collapsed"
+    )
+    st.caption(f"Depolarization: {depol_p:.2f}")
+
+    decay_f = st.slider(
+        "Amplitude Damping (T1)", 0.0, 0.3, 0.0,
+        key="decay_f",
+        label_visibility="collapsed"
+    )
+    st.caption(f"Amplitude Damping (T1): {decay_f:.2f}")
+
+    phase_g = st.slider(
+        "Phase Damping (T2)", 0.0, 0.3, 0.0,
+        key="phase_g",
+        label_visibility="collapsed"
+    )
+    st.caption(f"Phase Damping (T2): {phase_g:.2f}")
+
+    ro_01 = st.slider(
+        "|0⟩ → |1⟩ (Readout)", 0.0, 0.3, 0.0,
+        key="ro_01",
+        label_visibility="collapsed"
+    )
+    st.caption(f"|0⟩ → |1⟩: {ro_01:.2f}")
+
+    ro_10 = st.slider(
+        "|1⟩ → |0⟩ (Readout)", 0.0, 0.3, 0.0,
+        key="ro_10",
+        label_visibility="collapsed"
+    )
+    st.caption(f"|1⟩ → |0⟩: {ro_10:.2f}")
+
 
 # --- Code Editor Input ---
 st.subheader("</> Qiskit Code Editor")
@@ -342,6 +372,7 @@ if st.session_state.circuit is not None and st.session_state.state_circuit is no
 
     except Exception as e:
         st.error(f"Error during simulation or visualization: {e}")
+
 
 
 
