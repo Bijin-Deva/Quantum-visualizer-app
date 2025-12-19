@@ -7,7 +7,13 @@ import plotly.graph_objects as go
 from qiskit import QuantumCircuit, qasm2, ClassicalRegister
 from qiskit.quantum_info import DensityMatrix, Statevector
 from qiskit_aer import AerSimulator
-
+from qiskit_aer.noise import (
+    NoiseModel,
+    depolarizing_error,
+    amplitude_damping_error,
+    phase_damping_error,
+    ReadoutError
+)
 # NOTE: You will need to have your 'quantum_utils.py' and 'bloch_plot.py' files
 # in the same directory for these imports to work.
 from quantum_utils import (
@@ -17,7 +23,36 @@ from quantum_utils import (
     purity_from_rho,
 )
 from bloch_plot import plot_bloch_sphere
+def build_noise_model(depol_p, decay_f, phase_g, ro_01, ro_10):
+    noise = NoiseModel()
 
+    if depol_p > 0:
+        noise.add_all_qubit_quantum_error(
+            depolarizing_error(depol_p, 1),
+            ['h', 'x', 'y', 'z', 's', 't', 'cx']
+        )
+
+    if decay_f > 0:
+        noise.add_all_qubit_quantum_error(
+            amplitude_damping_error(decay_f),
+            ['h', 'x', 'y', 'z', 's', 't']
+        )
+
+    if phase_g > 0:
+        noise.add_all_qubit_quantum_error(
+            phase_damping_error(phase_g),
+            ['h', 'x', 'y', 'z', 's', 't']
+        )
+
+    if ro_01 > 0 or ro_10 > 0:
+        noise.add_all_qubit_readout_error(
+            ReadoutError([
+                [1 - ro_01, ro_01],
+                [ro_10, 1 - ro_10]
+            ])
+        )
+
+    return noise
 # --- Page and Session State Setup ---
 st.set_page_config(
     layout="wide",
@@ -117,6 +152,18 @@ if st.sidebar.button("Clear and Reset Circuit", type="primary"):
     # MODIFIED: Also reset the slider tracker
     st.session_state.last_num_qubits = -1
     st.rerun()
+# 🔽 STEP 3: Noise Controls (PLACE HERE)
+st.sidebar.markdown("---")
+st.sidebar.subheader("Quantum Noise")
+
+enable_noise = st.sidebar.checkbox("Enable Noise", value=False)
+
+with st.sidebar.expander("Noise Parameters"):
+    depol_p = st.sidebar.slider("Depolarization", 0.0, 0.3, 0.0)
+    decay_f = st.sidebar.slider("Amplitude Damping (T1)", 0.0, 0.3, 0.0)
+    phase_g = st.sidebar.slider("Phase Damping (T2)", 0.0, 0.3, 0.0)
+    ro_01 = st.sidebar.slider("|0⟩ → |1⟩ (Readout)", 0.0, 0.3, 0.0)
+    ro_10 = st.sidebar.slider("|1⟩ → |0⟩ (Readout)", 0.0, 0.3, 0.0)
 
 # --- Code Editor Input ---
 st.subheader("</> Qiskit Code Editor")
@@ -233,8 +280,15 @@ if st.session_state.circuit is not None and st.session_state.state_circuit is no
                     st.info("No classical registers found. Adding measurements to all qubits.")
                     circuit_to_measure.measure_all(inplace=True)
 
-                simulator = AerSimulator()
-                job = simulator.run(circuit_to_measure, shots=shots, memory=True)
+                noise_model = None
+                if enable_noise:
+                    noise_model = build_noise_model(
+                    depol_p, decay_f, phase_g, ro_01, ro_10
+                    )
+
+simulator = AerSimulator(noise_model=noise_model)
+job = simulator.run(circuit_to_measure, shots=shots, memory=True)
+
                 result = job.result()
                 st.session_state.counts = result.get_counts(circuit_to_measure)
                 st.rerun()
@@ -262,7 +316,11 @@ if st.session_state.circuit is not None and st.session_state.state_circuit is no
                 st.write(counts)
         
         st.markdown("---")
-
+        if enable_noise:
+            st.info(
+                "ℹ️ Bloch spheres show the ideal (noise-free) quantum state. "
+                "Noise is applied only during measurement simulation."
+            )
         # --- Per-Qubit Bloch Sphere Visualizations ---
         if st.session_state.state_circuit.num_qubits <= 10:
             st.subheader("Per-Qubit Bloch Sphere Visualizations (State Before Measurement)")
@@ -284,4 +342,5 @@ if st.session_state.circuit is not None and st.session_state.state_circuit is no
 
     except Exception as e:
         st.error(f"Error during simulation or visualization: {e}")
+
 
