@@ -286,8 +286,8 @@ if st.session_state.circuit is not None and st.session_state.state_circuit is no
                     depol_p, decay_f, phase_g, ro_01, ro_10
                     )
 
-simulator = AerSimulator(noise_model=noise_model)
-job = simulator.run(circuit_to_measure, shots=shots, memory=True)
+                simulator = AerSimulator(noise_model=noise_model)
+                job = simulator.run(circuit_to_measure, shots=shots, memory=True)
 
                 result = job.result()
                 st.session_state.counts = result.get_counts(circuit_to_measure)
@@ -342,5 +342,6 @@ job = simulator.run(circuit_to_measure, shots=shots, memory=True)
 
     except Exception as e:
         st.error(f"Error during simulation or visualization: {e}")
+
 
 
