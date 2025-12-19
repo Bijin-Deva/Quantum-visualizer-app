@@ -29,27 +29,60 @@ st.markdown("""
 <style>
 /* Main app background */
 .stApp {
-    background-image: linear-gradient(to bottom right, #000000, #0D224F);
-    background-attachment: fixed;
-    background-size: cover;
+    background-color: #EAF4FF; /* Light blue */
 }
-[data-testid="stHeader"] { background-color: transparent; }
-[data-testid="stAppViewContainer"] { color: white; }
+
+/* Header */
+[data-testid="stHeader"] {
+    background-color: transparent;
+}
+
+/* Main text */
+[data-testid="stAppViewContainer"] {
+    color: #000000;
+}
+
 [data-testid="stAppViewContainer"] h1,
 [data-testid="stAppViewContainer"] h2,
 [data-testid="stAppViewContainer"] h3,
-[data-testid="stAppViewContainer"] .stMarkdown p { color: white !important; }
-[data-testid="stSidebar"] { background-color: #0A193D; }
+[data-testid="stAppViewContainer"] .stMarkdown p {
+    color: #000000 !important;
+}
+
+/* Sidebar */
+[data-testid="stSidebar"] {
+    background-color: #D6EBFF; /* Slightly darker light blue */
+}
+
 [data-testid="stSidebar"] .stMarkdown,
 [data-testid="stSidebar"] label,
 [data-testid="stSidebar"] h1,
 [data-testid="stSidebar"] h2,
-[data-testid="stSidebar"] h3 { color: white !important; }
+[data-testid="stSidebar"] h3 {
+    color: #000000 !important;
+}
+
+/* Metrics */
 [data-testid="stMetric"] label,
-[data-testid="stMetric"] div { color: white !important; }
-[data-testid="stExpander"] summary { color: #87CEEB !important; font-weight: bold; }
+[data-testid="stMetric"] div {
+    color: #000000 !important;
+}
+
+/* Expander headers */
+[data-testid="stExpander"] summary {
+    color: #003366 !important;
+    font-weight: bold;
+}
+
+/* Code editor */
+textarea {
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+    border: 1px solid #A0C4FF !important;
+}
 </style>
 """, unsafe_allow_html=True)
+
 
 # Initialize session state variables
 if 'circuit' not in st.session_state:
@@ -251,3 +284,4 @@ if st.session_state.circuit is not None and st.session_state.state_circuit is no
 
     except Exception as e:
         st.error(f"Error during simulation or visualization: {e}")
+
