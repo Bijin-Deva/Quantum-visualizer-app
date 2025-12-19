@@ -34,12 +34,84 @@ st.set_page_config(layout="wide", page_title="Quantum State Visualizer")
 # ------------------------------------------------------------
 st.markdown("""
 <style>
+
+/* =========================
+   Main App Background
+========================= */
 .stApp {
-    background-image: linear-gradient(to bottom right, #000000, #0D224F);
+    background-color: #FFFFFF;
 }
-[data-testid="stSidebar"] { background-color: #E6F2FF; }
-[data-testid="stSidebar"] * { color: black !important; }
-[data-testid="stAppViewContainer"] * { color: white; }
+
+/* Remove header background */
+[data-testid="stHeader"] {
+    background-color: transparent;
+}
+
+/* =========================
+   Text Colors
+========================= */
+[data-testid="stAppViewContainer"] {
+    color: #222222;
+}
+
+[data-testid="stAppViewContainer"] h1,
+[data-testid="stAppViewContainer"] h2,
+[data-testid="stAppViewContainer"] h3,
+[data-testid="stAppViewContainer"] p,
+[data-testid="stAppViewContainer"] label {
+    color: #222222 !important;
+}
+
+/* =========================
+   Sidebar
+========================= */
+[data-testid="stSidebar"] {
+    background-color: #E6F2FF;
+}
+
+[data-testid="stSidebar"] * {
+    color: #000000 !important;
+}
+
+/* =========================
+   Code Editor (Text Area)
+========================= */
+textarea {
+    background-color: #F8F9FA !important;
+    color: #000000 !important;
+    font-family: Consolas, "Courier New", monospace !important;
+    font-size: 15px !important;
+    border: 2px solid #4A90E2 !important;
+    border-radius: 6px !important;
+    caret-color: #000000 !important;
+}
+
+/* Placeholder text */
+textarea::placeholder {
+    color: #6c757d !important;
+}
+
+/* =========================
+   Buttons
+========================= */
+button {
+    background-color: #4A90E2 !important;
+    color: #FFFFFF !important;
+    border-radius: 6px !important;
+}
+
+button:hover {
+    background-color: #357ABD !important;
+}
+
+/* =========================
+   Expander
+========================= */
+[data-testid="stExpander"] summary {
+    color: #1f4ed8 !important;
+    font-weight: 600;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -148,7 +220,12 @@ if st.session_state.last_num_qubits != num_qubits or not st.session_state.user_c
     st.session_state.user_code = default_code
     st.session_state.last_num_qubits = num_qubits
 
-user_code = st.text_area("Qiskit Code", st.session_state.user_code, height=250)
+user_code = st.text_area(
+    "Qiskit Code",
+    st.session_state.user_code,
+    height=260
+)
+
 
 # ------------------------------------------------------------
 # Run Simulation
@@ -245,3 +322,4 @@ if st.session_state.circuit is not None:
 
             st.plotly_chart(plot_bloch_sphere(bx, by, bz, f"Qubit {i}"), use_container_width=True)
             st.metric("Purity", f"{purity:.4f}")
+
