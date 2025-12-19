@@ -1,9 +1,3 @@
-# app.py — Clean, stable, noise-enabled Quantum Circuit Visualizer
-
-import streamlit as st
-import numpy as np
-import plotly.graph_objects as go
-
 from qiskit import QuantumCircuit, qasm2, ClassicalRegister
 from qiskit.quantum_info import DensityMatrix, Statevector
 from qiskit_aer import AerSimulator
@@ -15,126 +9,14 @@ from qiskit_aer.noise import (
     ReadoutError
 )
 
-from quantum_utils import (
-    get_full_density_matrix_from_circuit,
-    get_reduced_density_matrix,
+
+# NOTE: You will need to have your 'quantum_utils.py' and 'bloch_plot.py' files
+# in the same directory for these imports to work.
+@@ -15,6 +23,37 @@
     get_bloch_vector_from_rho,
     purity_from_rho,
 )
-
-from bloch_plot import plot_bloch_sphere
-
-# ------------------------------------------------------------
-# Page Config
-# ------------------------------------------------------------
-st.set_page_config(layout="wide", page_title="Quantum State Visualizer")
-
-# ------------------------------------------------------------
-# Styling
-# ------------------------------------------------------------
-st.markdown("""
-<style>
-
-/* =========================
-   Main App Background
-========================= */
-.stApp {
-    background-color: #FFFFFF;
-}
-
-/* Remove header background */
-[data-testid="stHeader"] {
-    background-color: transparent;
-}
-
-/* =========================
-   Text Colors
-========================= */
-[data-testid="stAppViewContainer"] {
-    color: #222222;
-}
-
-[data-testid="stAppViewContainer"] h1,
-[data-testid="stAppViewContainer"] h2,
-[data-testid="stAppViewContainer"] h3,
-[data-testid="stAppViewContainer"] p,
-[data-testid="stAppViewContainer"] label {
-    color: #222222 !important;
-}
-
-/* =========================
-   Sidebar
-========================= */
-[data-testid="stSidebar"] {
-    background-color: #E6F2FF;
-}
-
-[data-testid="stSidebar"] * {
-    color: #000000 !important;
-}
-
-/* =========================
-   Code Editor (Text Area)
-========================= */
-textarea {
-    background-color: #F8F9FA !important;
-    color: #000000 !important;
-    font-family: Consolas, "Courier New", monospace !important;
-    font-size: 15px !important;
-    border: 2px solid #4A90E2 !important;
-    border-radius: 6px !important;
-    caret-color: #000000 !important;
-}
-
-/* Placeholder text */
-textarea::placeholder {
-    color: #6c757d !important;
-}
-
-/* =========================
-   Buttons
-========================= */
-button {
-    background-color: #4A90E2 !important;
-    color: #FFFFFF !important;
-    border-radius: 6px !important;
-}
-
-button:hover {
-    background-color: #357ABD !important;
-}
-
-/* =========================
-   Expander
-========================= */
-[data-testid="stExpander"] summary {
-    color: #1f4ed8 !important;
-    font-weight: 600;
-}
-
-</style>
-""", unsafe_allow_html=True)
-
-# ------------------------------------------------------------
-# Session State Defaults
-# ------------------------------------------------------------
-defaults = {
-    "circuit": None,
-    "state_circuit": None,
-    "qasm_code": "",
-    "user_code": "",
-    "counts": None,
-    "last_num_qubits": -1,
-}
-
-for k, v in defaults.items():
-    if k not in st.session_state:
-        st.session_state[k] = v
-
-# ------------------------------------------------------------
-# Noise Model Builder
-# ------------------------------------------------------------
-def build_noise_model(depol_p, decay_f, phase_g, ro_01, ro_10):
+def build_noise_model():
     noise = NoiseModel()
 
     if depol_p > 0:
@@ -165,161 +47,76 @@ def build_noise_model(depol_p, decay_f, phase_g, ro_01, ro_10):
 
     return noise
 
-# ------------------------------------------------------------
-# Main Title
-# ------------------------------------------------------------
-st.title("⚛️ Quantum Circuit Simulator & Visualizer")
-st.markdown("Write Qiskit code, simulate circuits, visualize Bloch spheres, and apply quantum noise.")
+from bloch_plot import plot_bloch_sphere
 
-# ------------------------------------------------------------
-# Sidebar Controls
-# ------------------------------------------------------------
+# --- Page and Session State Setup ---
+@@ -38,12 +77,12 @@
+[data-testid="stAppViewContainer"] h2,
+[data-testid="stAppViewContainer"] h3,
+[data-testid="stAppViewContainer"] .stMarkdown p { color: white !important; }
+[data-testid="stSidebar"] { background-color: #0A193D; }
+[data-testid="stSidebar"] { background-color: #E6F2FF; }
+[data-testid="stSidebar"] .stMarkdown,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 { color: white !important; }
+[data-testid="stSidebar"] h3 { color: black !important; }
+[data-testid="stMetric"] label,
+[data-testid="stMetric"] div { color: white !important; }
+[data-testid="stExpander"] summary { color: #87CEEB !important; font-weight: bold; }
+@@ -83,6 +122,27 @@
+    # MODIFIED: Also reset the slider tracker
+    st.session_state.last_num_qubits = -1
+    st.rerun()
+# --- Sidebar Controls ---
 st.sidebar.title("Circuit Controls")
+num_qubits = st.sidebar.slider(...)
+...
 
-num_qubits = st.sidebar.slider(
-    "Number of Qubits",
-    min_value=1,
-    max_value=5,
-    value=2,
-    key="num_qubits"
-)
-
-if st.sidebar.button("Clear & Reset Circuit"):
-    for k in defaults:
-        st.session_state[k] = defaults[k]
+if st.sidebar.button("Clear and Reset Circuit", type="primary"):
+    ...
     st.rerun()
 
+# 🔽 PLACE NOISE CONTROLS HERE
 st.sidebar.markdown("---")
 st.sidebar.subheader("Quantum Noise")
 
-enable_noise = st.sidebar.checkbox("Enable Noise", key="enable_noise")
+enable_noise = st.sidebar.checkbox("Enable Noise", value=False)
 
 with st.sidebar.expander("Noise Parameters"):
-    depol_p = st.sidebar.slider("Depolarization", 0.0, 0.3, 0.0, key="depol_p")
-    decay_f = st.sidebar.slider("Amplitude Damping (T1)", 0.0, 0.3, 0.0, key="decay_f")
-    phase_g = st.sidebar.slider("Phase Damping (T2)", 0.0, 0.3, 0.0, key="phase_g")
-    ro_01 = st.sidebar.slider("|0⟩ → |1⟩", 0.0, 0.3, 0.0, key="ro_01")
-    ro_10 = st.sidebar.slider("|1⟩ → |0⟩", 0.0, 0.3, 0.0, key="ro_10")
+    depol_p = st.sidebar.slider("Depolarization", 0.0, 0.3, 0.0)
+    decay_f = st.sidebar.slider("Amplitude Damping (T1)", 0.0, 0.3, 0.0)
+    phase_g = st.sidebar.slider("Phase Damping (T2)", 0.0, 0.3, 0.0)
+    ro_01 = st.sidebar.slider("|0⟩ → |1⟩ (Readout)", 0.0, 0.3, 0.0)
+    ro_10 = st.sidebar.slider("|1⟩ → |0⟩ (Readout)", 0.0, 0.3, 0.0)
 
-# ------------------------------------------------------------
-# Code Editor
-# ------------------------------------------------------------
+# --- Code Editor Input ---
 st.subheader("</> Qiskit Code Editor")
+@@ -199,7 +259,8 @@
+                    st.info("No classical registers found. Adding measurements to all qubits.")
+                    circuit_to_measure.measure_all(inplace=True)
 
-base_code = f"qc = QuantumCircuit({num_qubits}, {num_qubits})\n"
+                simulator = AerSimulator()
+                noise_model = build_noise_model() if enable_noise else None
+                simulator = AerSimulator(noise_model=noise_model)
+                job = simulator.run(circuit_to_measure, shots=shots, memory=True)
+                result = job.result()
+                st.session_state.counts = result.get_counts(circuit_to_measure)
+@@ -228,6 +289,12 @@
+                st.write(counts)
 
-example_code = (
-    "qc.h(0)\nqc.cx(0,1)\nqc.measure([0,1],[0,1])\n"
-    if num_qubits >= 2 else
-    "qc.h(0)\nqc.measure(0,0)\n"
-)
-
-default_code = base_code + example_code
-
-if st.session_state.last_num_qubits != num_qubits or not st.session_state.user_code:
-    st.session_state.user_code = default_code
-    st.session_state.last_num_qubits = num_qubits
-
-user_code = st.text_area(
-    "Qiskit Code",
-    st.session_state.user_code,
-    height=260
-)
+        st.markdown("---")
+        if enable_noise:
+            st.info(
+                "ℹ️ Bloch spheres show the ideal (noise-free) quantum state. "
+                "Noise is applied during measurement simulation."
+            )
 
 
-# ------------------------------------------------------------
-# Run Simulation
-# ------------------------------------------------------------
-if st.button("Run Simulation"):
-    st.session_state.user_code = user_code
-    st.session_state.counts = None
-
-    try:
-        exec_globals = {"QuantumCircuit": QuantumCircuit, "ClassicalRegister": ClassicalRegister, "np": np}
-        exec(user_code, exec_globals)
-        qc = exec_globals.get("qc")
-
-        if not isinstance(qc, QuantumCircuit):
-            st.error("QuantumCircuit named `qc` not found.")
-        else:
-            st.session_state.circuit = qc
-            st.session_state.qasm_code = qasm2.dumps(qc)
-
-            state_circuit = qc.copy()
-            state_circuit.remove_final_measurements(inplace=True)
-            st.session_state.state_circuit = state_circuit
-
-            st.success("Simulation successful!")
-            st.rerun()
+        # --- Per-Qubit Bloch Sphere Visualizations ---
+        if st.session_state.state_circuit.num_qubits <= 10:
+@@ -250,3 +317,4 @@
 
     except Exception as e:
-        st.error(f"Code error: {e}")
-
-# ------------------------------------------------------------
-# Results
-# ------------------------------------------------------------
-if st.session_state.circuit is not None:
-
-    st.header("Circuit Diagram")
-    st.pyplot(st.session_state.circuit.draw(output="mpl"))
-
-    st.header("OpenQASM")
-    st.code(st.session_state.qasm_code, language="qasm")
-
-    # ---------------- Measurement ----------------
-    st.header("Measurement Outcomes")
-
-    shots = 1024
-    if st.button("Measure & Run"):
-        qc_meas = st.session_state.circuit.copy()
-        qc_meas.measure_all()
-
-        noise_model = (
-            build_noise_model(depol_p, decay_f, phase_g, ro_01, ro_10)
-            if enable_noise else None
-        )
-
-        sim = AerSimulator(noise_model=noise_model)
-        result = sim.run(qc_meas, shots=shots).result()
-        st.session_state.counts = result.get_counts()
-
-        st.rerun()
-
-    if st.session_state.counts:
-        counts = st.session_state.counts
-
-        fig = go.Figure(go.Bar(
-            x=list(counts.keys()),
-            y=list(counts.values())
-        ))
-        st.plotly_chart(fig, use_container_width=True)
-
-        st.metric("Most Probable Outcome", max(counts, key=counts.get))
-
-        with st.expander("Raw Counts"):
-            st.json(counts)
-
-    # ---------------- Bloch Spheres ----------------
-    st.markdown("---")
-
-    if enable_noise:
-        st.info(
-            "ℹ️ Bloch spheres show the ideal (noise-free) quantum state. "
-            "Noise affects measurement outcomes only."
-        )
-
-    st.header("Bloch Sphere Visualizations")
-
-    full_dm = get_full_density_matrix_from_circuit(st.session_state.state_circuit)
-    n = st.session_state.state_circuit.num_qubits
-
-    cols = st.columns(n)
-    for i in range(n):
-        with cols[i]:
-            rho = get_reduced_density_matrix(full_dm, n, i)
-            bx, by, bz = get_bloch_vector_from_rho(rho)
-            purity = purity_from_rho(rho)
-
-            st.plotly_chart(plot_bloch_sphere(bx, by, bz, f"Qubit {i}"), use_container_width=True)
-            st.metric("Purity", f"{purity:.4f}")
-
+        st.error(f"Error during simulation or visualization: {e}")
