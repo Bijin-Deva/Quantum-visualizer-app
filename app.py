@@ -23,7 +23,7 @@ from quantum_utils import (
     purity_from_rho,
 )
 from bloch_plot import plot_bloch_sphere
-def build_noise_model(depol_p, decay_f, phase_g, ro_01, ro_10):
+def build_noise_model(depol_p, decay_f, phase_g, tsp_01, tsp_10):
     noise = NoiseModel()
 
     if depol_p > 0:
@@ -318,7 +318,7 @@ if st.session_state.circuit is not None and st.session_state.state_circuit is no
                 noise_model = None
                 if enable_noise:
                     noise_model = build_noise_model(
-                    depol_p, decay_f, phase_g, ro_01, ro_10
+                    depol_p, decay_f, phase_g, tsp_01, tsp_10
                     )
 
                 simulator = AerSimulator(noise_model=noise_model)
@@ -377,6 +377,7 @@ if st.session_state.circuit is not None and st.session_state.state_circuit is no
 
     except Exception as e:
         st.error(f"Error during simulation or visualization: {e}")
+
 
 
 
