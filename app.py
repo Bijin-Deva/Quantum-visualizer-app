@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 from qiskit import QuantumCircuit, qasm2, ClassicalRegister
 from qiskit.quantum_info import DensityMatrix, Statevector
 from qiskit_aer import AerSimulator
+from qiskit.quantum_info import DensityMatrix
 from qiskit_aer.noise import (
     NoiseModel,
     depolarizing_error,
@@ -23,6 +24,20 @@ from quantum_utils import (
     purity_from_rho,
 )
 from bloch_plot import plot_bloch_sphere
+def get_noisy_density_matrix(circuit, noise_model):
+    """
+    Runs a noisy density-matrix simulation and returns final DensityMatrix
+    """
+    sim = AerSimulator(
+        method="density_matrix",
+        noise_model=noise_model
+    )
+
+    qc = circuit.copy()
+    qc.save_density_matrix()
+
+    result = sim.run(qc).result()
+    return DensityMatrix(result.data(0)["density_matrix"])
 def build_noise_model(depol_p, decay_f, phase_g, tsp_01, tsp_10):
     noise = NoiseModel()
 
@@ -393,6 +408,7 @@ if st.session_state.circuit is not None and st.session_state.state_circuit is no
 
     except Exception as e:
         st.error(f"Error during simulation or visualization: {e}")
+
 
 
 
