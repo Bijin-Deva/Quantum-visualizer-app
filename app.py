@@ -154,45 +154,50 @@ if st.sidebar.button("Clear and Reset Circuit", type="primary"):
     st.rerun()
 # 🔽 STEP 3: Noise Controls (PLACE HERE)
 st.sidebar.markdown("---")
-st.sidebar.subheader("Quantum Noise")
+st.header("🔬 Quantum Noise")
 
-enable_noise = st.sidebar.checkbox("Enable Noise", value=False)
+enable_noise = st.checkbox("Enable Noise")
 
-with st.sidebar.expander("Noise Parameters"):
+with st.expander("Noise Parameters", expanded=True):
     depol_p = st.slider(
-        "Depolarization", 0.0, 0.3, 0.0,
-        key="depol_p",
-        label_visibility="collapsed"
+        "Depolarization",
+        min_value=0.0,
+        max_value=0.3,
+        value=0.0,
+        step=0.01
     )
-    st.caption(f"Depolarization: {depol_p:.2f}")
 
     decay_f = st.slider(
-        "Amplitude Damping (T1)", 0.0, 0.3, 0.0,
-        key="decay_f",
-        label_visibility="collapsed"
+        "Amplitude Damping (T1)",
+        min_value=0.0,
+        max_value=0.3,
+        value=0.0,
+        step=0.01
     )
-    st.caption(f"Amplitude Damping (T1): {decay_f:.2f}")
 
     phase_g = st.slider(
-        "Phase Damping (T2)", 0.0, 0.3, 0.0,
-        key="phase_g",
-        label_visibility="collapsed"
+        "Phase Damping (T2)",
+        min_value=0.0,
+        max_value=0.3,
+        value=0.0,
+        step=0.01
     )
-    st.caption(f"Phase Damping (T2): {phase_g:.2f}")
 
-    ro_01 = st.slider(
-        "|0⟩ → |1⟩ (Readout)", 0.0, 0.3, 0.0,
-        key="ro_01",
-        label_visibility="collapsed"
+    tsp_01 = st.slider(
+        "|0⟩ → |1⟩ (Readout)",
+        min_value=0.0,
+        max_value=0.3,
+        value=0.0,
+        step=0.01
     )
-    st.caption(f"|0⟩ → |1⟩: {ro_01:.2f}")
 
-    ro_10 = st.slider(
-        "|1⟩ → |0⟩ (Readout)", 0.0, 0.3, 0.0,
-        key="ro_10",
-        label_visibility="collapsed"
+    tsp_10 = st.slider(
+        "|1⟩ → |0⟩ (Readout)",
+        min_value=0.0,
+        max_value=0.3,
+        value=0.0,
+        step=0.01
     )
-    st.caption(f"|1⟩ → |0⟩: {ro_10:.2f}")
 
 
 # --- Code Editor Input ---
@@ -372,6 +377,7 @@ if st.session_state.circuit is not None and st.session_state.state_circuit is no
 
     except Exception as e:
         st.error(f"Error during simulation or visualization: {e}")
+
 
 
 
