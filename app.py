@@ -309,7 +309,19 @@ if st.session_state.circuit is not None and st.session_state.state_circuit is no
         if st.session_state.state_circuit.num_qubits > 10:
              st.warning("State vector and density matrix analysis is disabled for circuits with more than 10 qubits to ensure performance.")
         else:
-            full_dm_obj = get_full_density_matrix_from_circuit(st.session_state.state_circuit)
+            if enable_noise:
+                noise_model = build_noise_model(
+                    depol_p, decay_f, phase_g, tsp_01, tsp_10
+                )
+            
+                full_dm_obj = get_noisy_density_matrix(
+                    st.session_state.state_circuit,
+                    noise_model
+                )
+            else:
+                full_dm_obj = get_full_density_matrix_from_circuit(
+                    st.session_state.state_circuit
+                )
         
         # Row 1: Diagram, QASM, and State
         with st.container():
@@ -384,9 +396,10 @@ if st.session_state.circuit is not None and st.session_state.state_circuit is no
         st.markdown("---")
         if enable_noise:
             st.info(
-                "ℹ️ Bloch spheres show the ideal (noise-free) quantum state. "
-                "Noise is applied only during measurement simulation."
+                "ℹ️ Bloch spheres show the quantum state after noise. "
+                "Noise reduces purity and shrinks the Bloch vector."
             )
+
         # --- Per-Qubit Bloch Sphere Visualizations ---
         if st.session_state.state_circuit.num_qubits <= 10:
             st.subheader("Per-Qubit Bloch Sphere Visualizations (State Before Measurement)")
@@ -408,6 +421,7 @@ if st.session_state.circuit is not None and st.session_state.state_circuit is no
 
     except Exception as e:
         st.error(f"Error during simulation or visualization: {e}")
+
 
 
 
