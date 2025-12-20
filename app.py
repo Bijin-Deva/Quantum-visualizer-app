@@ -26,10 +26,13 @@ from bloch_plot import plot_bloch_sphere
 def build_noise_model(depol_p, decay_f, phase_g, tsp_01, tsp_10):
     noise = NoiseModel()
 
+    # -------------------------
+    # 1️⃣ Single-qubit gate noise
+    # -------------------------
     if depol_p > 0:
         noise.add_all_qubit_quantum_error(
             depolarizing_error(depol_p, 1),
-            ['h', 'x', 'y', 'z', 's', 't', 'cx']
+            ['h', 'x', 'y', 'z', 's', 't']
         )
 
     if decay_f > 0:
@@ -44,15 +47,28 @@ def build_noise_model(depol_p, decay_f, phase_g, tsp_01, tsp_10):
             ['h', 'x', 'y', 'z', 's', 't']
         )
 
+    # -------------------------
+    # 2️⃣ Two-qubit CX noise (CRITICAL FIX)
+    # -------------------------
+    if depol_p > 0:
+        noise.add_all_qubit_quantum_error(
+            depolarizing_error(depol_p, 2),   # ✅ 2-qubit error
+            ['cx']
+        )
+
+    # -------------------------
+    # 3️⃣ Readout noise
+    # -------------------------
     if tsp_01 > 0 or tsp_10 > 0:
         noise.add_all_qubit_readout_error(
             ReadoutError([
                 [1 - tsp_01, tsp_01],
                 [tsp_10, 1 - tsp_10]
             ])
-            )
+        )
 
     return noise
+
 # --- Page and Session State Setup ---
 st.set_page_config(
     layout="wide",
@@ -377,6 +393,7 @@ if st.session_state.circuit is not None and st.session_state.state_circuit is no
 
     except Exception as e:
         st.error(f"Error during simulation or visualization: {e}")
+
 
 
 
